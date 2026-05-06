@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
@@ -12,6 +15,7 @@ from src.agents.strategist import strategist_node
 from src.agents.worker import worker_node
 from src.graph.router import route_input, route_post_review
 from src.graph.state import TCGeneratorState
+from src.hitl.protocol import build_strategy_review_payload
 from src.loaders.image_loader import load_images
 from src.loaders.pdf_loader import load_pdf_text
 from src.loaders.text_loader import load_text_input
@@ -43,23 +47,38 @@ def pdf_loader_node(state: TCGeneratorState) -> TCGeneratorState:
 
 
 def hitl_review_node(state: TCGeneratorState) -> TCGeneratorState:
-    """Strategist 결과를 사용자 검토에 맡긴다."""
+    """Strategist 결과를 사용자 검토에 맡긴다.
+
+    `interrupt()`로 그래프를 정지시키고, CLI(또는 다른 인터페이스)가
+    `Command(resume=...)`로 재개할 때까지 대기한다.
+
+    입력 state key:
+    - strategy
+    - retries
+    - user_feedback (직전 라운드 피드백)
+
+    출력 state key:
+    - user_decision
+    - user_feedback (이번 라운드 피드백으로 갱신)
+    - retries (reject일 때만 +1)
+    """
 
     strategy = state.get("strategy")
     if strategy is None:
         raise ValueError("HITL 실행 전에 strategy가 필요합니다.")
 
-    review_payload = interrupt(
-        {
-            "kind": "strategy_review",
-            "strategy": strategy.model_dump(mode="json"),
-            "retries": state.get("retries", 0),
-            "user_feedback": state.get("user_feedback") or "",
-        }
+    payload = build_strategy_review_payload(
+        strategy=strategy,
+        retries=state.get("retries", 0),
+        user_feedback=state.get("user_feedback") or "",
     )
+    review_payload = interrupt(payload)
+
+    if not isinstance(review_payload, dict):
+        raise ValueError("HITL resume 값은 dict여야 합니다.")
 
     decision = review_payload.get("decision", "approve")
-    feedback = review_payload.get("feedback", "")
+    feedback = review_payload.get("feedback", "") or ""
 
     updated_state = dict(state)
     updated_state["user_decision"] = decision
@@ -69,8 +88,14 @@ def hitl_review_node(state: TCGeneratorState) -> TCGeneratorState:
     return updated_state
 
 
-def build_graph():
-    """Phase 4용 LangGraph를 조립한다."""
+def build_graph(checkpointer: Optional[BaseCheckpointSaver] = None):
+    """TC 생성 LangGraph를 조립한다.
+
+    Args:
+        checkpointer: 그래프 상태 영속화를 담당할 checkpointer.
+            지정하지 않으면 `MemorySaver()`를 사용한다.
+            테스트나 영속 saver(SQLite 등) 교체를 위해 외부에서 주입할 수 있다.
+    """
 
     graph = StateGraph(TCGeneratorState)
 
@@ -109,4 +134,4 @@ def build_graph():
     graph.add_edge("worker", "finalizer")
     graph.add_edge("finalizer", END)
 
-    return graph.compile(checkpointer=MemorySaver())
+    return graph.compile(checkpointer=checkpointer or MemorySaver())

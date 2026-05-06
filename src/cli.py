@@ -11,17 +11,28 @@ from langgraph.types import Command
 from src.config import load_settings
 from src.graph.builder import build_graph
 from src.hitl.cli_prompt import prompt_hitl_decision
-from src.models.schemas import TestStrategy
+from src.hitl.protocol import MAX_HITL_RETRIES, parse_strategy_review_payload
 from src.output.csv_writer import write_test_cases_to_csv
+
+
+# resume 루프의 최대 반복 횟수.
+# 정상 흐름에서는 router가 MAX_HITL_RETRIES 도달 시 worker로 강제 진행하므로
+# 반드시 종료된다. 방어적 상한으로 무한 루프를 차단한다.
+_MAX_RESUME_ITERATIONS = MAX_HITL_RETRIES + 3
 
 
 app = typer.Typer(help="기획서 기반 테스트 케이스 초안 생성 도구")
 
 
 def _resolve_hitl_interrupt(graph, config: dict[str, object]) -> None:
-    """그래프 interrupt를 CLI 입력으로 해소한다."""
+    """그래프 interrupt를 CLI 입력으로 해소한다.
 
-    while True:
+    HITL 거부 시 Strategist가 재실행되며 다시 interrupt가 발생할 수 있으므로,
+    interrupt가 더 이상 남지 않을 때까지 반복한다.
+    무한 루프를 방어하기 위해 ``_MAX_RESUME_ITERATIONS``로 상한을 둔다.
+    """
+
+    for _ in range(_MAX_RESUME_ITERATIONS):
         snapshot = graph.get_state(config)
         tasks = snapshot.tasks or ()
         interrupts = [
@@ -33,12 +44,22 @@ def _resolve_hitl_interrupt(graph, config: dict[str, object]) -> None:
             return
 
         payload = interrupts[0].value
-        if payload.get("kind") != "strategy_review":
-            raise ValueError("지원하지 않는 HITL interrupt payload입니다.")
+        strategy, retries, max_retries, previous_feedback = (
+            parse_strategy_review_payload(payload)
+        )
 
-        strategy = TestStrategy.model_validate(payload["strategy"])
-        resume_value = prompt_hitl_decision(strategy)
+        resume_value = prompt_hitl_decision(
+            strategy,
+            retries=retries,
+            previous_feedback=previous_feedback,
+            max_retries=max_retries,
+        )
         graph.invoke(Command(resume=resume_value), config)
+
+    raise RuntimeError(
+        "HITL resume 루프가 안전 상한에 도달했습니다. "
+        "재시도 한도 또는 그래프 라우팅 설정을 확인해주세요."
+    )
 
 
 @app.command()
