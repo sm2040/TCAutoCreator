@@ -9,16 +9,9 @@
 
 ## 진행 중
 
-- `Phase 5` HITL 추가 준비
+- `Phase 6` 품질 보강
 
 ## 다음 할 일
-
-### Phase 5: HITL 추가
-
-- Strategist 결과 승인/수정/거부 인터페이스 구현
-- `interrupt()` 기반 재개 흐름 연결
-- 재시도 로직 추가
-- Checkpointer 구성
 
 ### Phase 6: 품질 보강
 
@@ -81,6 +74,13 @@
 - `Researcher → Strategist → Worker → Finalizer` 노드 체인 연결
 - 텍스트/이미지/PDF 입력 라우팅 실검증 완료
 
+### Phase 5 구현
+
+- Strategist 결과 승인/수정/거부 인터페이스 구현 (`src/hitl/cli_prompt.py`)
+- `interrupt()` 기반 재개 흐름 연결 (`src/graph/builder.py`)
+- Checkpointer 구성 및 resume 루프 보호 연결 (`src/cli.py`)
+- 거부 시 재시도 로직 추가 및 `MAX_HITL_RETRIES` 적용 (`src/graph/router.py`)
+
 ### 로컬 검증 완료 항목
 
 - `python3 -m compileall src tests` 통과
@@ -93,11 +93,11 @@
 - LangGraph 텍스트 입력 실검증: `outputs/phase4_text_graph.csv` 생성
 - LangGraph 이미지 입력 실검증: `outputs/phase4_image_graph.csv` 생성
 - LangGraph PDF 입력 실검증: `outputs/phase4_pdf_graph.csv` 생성
+- Phase 5 HITL 승인 흐름 텍스트 입력 실검증 완료
 
 ## 막힌 부분 / 결정 필요 사항
 
 - PDF의 이미지 추출은 아직 미구현이며 현재는 텍스트 추출 중심
-- HITL과 Checkpointer는 아직 미연결
 - `pytest`는 현재 `.venv`에 설치되어 있지 않아 자동 테스트 실행은 미실시
 
 ## 다음 세션 시작 시 컨텍스트
@@ -105,10 +105,9 @@
 다음 세션에서는 아래 순서로 진행한다.
 
 1. `TASKS.md`, `DESIGN.md`, `Test Case AutoCreator_Implementation Plan.md` 읽기
-2. `Phase 5` 범위에서 HITL 인터페이스 설계
-3. Strategist 결과를 사용자 승인/수정/거부 흐름으로 연결
-4. 재시도와 상태 재개 구조 설계
-5. 이후 Checkpointer와 품질 보강으로 확장
+2. `Phase 6` 품질 보강 작업(프롬프트 튜닝 등) 진행
+3. 예외 상황 처리 및 회귀 검증
+4. README 업데이트 및 마무리
 
 ## 자주 쓰는 명령
 
