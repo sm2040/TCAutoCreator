@@ -56,7 +56,7 @@ def format_strategy_preview(
         remaining = max(max_retries - retries, 0)
         lines.append(
             typer.style(
-                f"재시도 라운드: {retries} (남은 거부 가능 횟수: {remaining})",
+                f"재시도 라운드: {retries} (남은 재시도 가능 횟수: {remaining})",
                 fg=typer.colors.YELLOW,
             )
         )
@@ -159,14 +159,15 @@ def prompt_hitl_decision(
     feedback = _prompt_feedback(decision)
 
     if decision == DECISION_EDIT:
+        remaining = max(max_retries - (retries + 1), 0)
         typer.secho(
-            "수정 의견을 반영해 후속 단계를 진행합니다.",
-            fg=typer.colors.GREEN,
+            f"수정 의견을 반영해 Strategist를 재실행합니다. (남은 재시도 가능 횟수: {remaining})",
+            fg=typer.colors.YELLOW,
         )
     else:
         remaining = max(max_retries - (retries + 1), 0)
         typer.secho(
-            f"전략을 거부했습니다. Strategist를 재실행합니다. (남은 거부 가능 횟수: {remaining})",
+            f"전략을 거부했습니다. Strategist를 재실행합니다. (남은 재시도 가능 횟수: {remaining})",
             fg=typer.colors.YELLOW,
         )
 

@@ -60,7 +60,7 @@ def hitl_review_node(state: TCGeneratorState) -> TCGeneratorState:
     출력 state key:
     - user_decision
     - user_feedback (이번 라운드 피드백으로 갱신)
-    - retries (reject일 때만 +1)
+    - retries (edit 또는 reject일 때 +1)
     """
 
     strategy = state.get("strategy")
@@ -83,7 +83,7 @@ def hitl_review_node(state: TCGeneratorState) -> TCGeneratorState:
     updated_state = dict(state)
     updated_state["user_decision"] = decision
     updated_state["user_feedback"] = feedback
-    if decision == "reject":
+    if decision in ("reject", "edit"):
         updated_state["retries"] = state.get("retries", 0) + 1
     return updated_state
 
