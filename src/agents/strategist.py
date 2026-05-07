@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from langchain.output_parsers import OutputFixingParser
 from langchain_core.output_parsers import PydanticOutputParser
 
 from src.graph.state import TCGeneratorState
@@ -24,7 +25,8 @@ def strategist_node(state: TCGeneratorState) -> TCGeneratorState:
     if analysis is None:
         raise ValueError("Strategist 실행 전에 analysis가 필요합니다.")
 
-    parser = PydanticOutputParser(pydantic_object=TestStrategy)
+    base_parser = PydanticOutputParser(pydantic_object=TestStrategy)
+    parser = OutputFixingParser.from_llm(parser=base_parser, llm=get_text_llm())
     chain = strategist_prompt | get_text_llm() | parser
 
     strategy = chain.invoke(

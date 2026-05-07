@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from langchain.output_parsers import OutputFixingParser
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser
 
@@ -24,7 +25,8 @@ def researcher_node(state: TCGeneratorState) -> TCGeneratorState:
     - analysis
     """
 
-    parser = PydanticOutputParser(pydantic_object=ScreenAnalysis)
+    base_parser = PydanticOutputParser(pydantic_object=ScreenAnalysis)
+    parser = OutputFixingParser.from_llm(parser=base_parser, llm=get_text_llm())
 
     if state["input_type"] == "image":
         content: list[dict[str, object]] = [

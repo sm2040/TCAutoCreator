@@ -16,10 +16,10 @@ RESEARCHER_USER_TEMPLATE = """다음 기획 또는 요구사항 자료를 분석
 
 아래 항목을 구조화해서 정리하세요.
 - screen_name: 화면명 또는 문서 주제
-- feature_areas: 주요 기능 영역
-- ui_elements: 주요 UI 요소 또는 핵심 구성 요소
-- user_actions: 사용자가 수행 가능한 주요 액션
-- edge_cases_hint: 테스트 시 확인할 만한 예외/경계 상황 힌트
+- feature_areas: 주요 기능 영역 (최소 2~3가지 이상 구체적으로 도출)
+- ui_elements: 주요 UI 요소 또는 핵심 구성 요소 (입력 폼, 버튼, 링크 등 화면 레이아웃 관점 포함)
+- user_actions: 사용자가 수행 가능한 주요 액션 (클릭, 입력, 스와이프 등)
+- edge_cases_hint: 테스트 시 확인할 만한 예외/경계 상황 힌트 (예: 네트워크 지연, 텍스트 초과, 비정상 입력값 등)
 
 [출력 형식]
 {format_instructions}"""

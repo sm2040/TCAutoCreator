@@ -4,18 +4,15 @@
 
 ## 현재 범위
 
-현재는 `Phase 4`의 LangGraph 기반 입력 라우팅/에이전트 분리 구조까지 구현된 상태입니다.
+현재는 `Phase 6`까지 목표한 모든 기능(품질 보강 및 HITL 포함)이 완료된 MVP 완성 상태입니다.
 
-- 프로젝트 구조
-- 환경 변수 로딩
-- OpenRouter/LangSmith 설정 모델
-- Pydantic 스키마
-- LLM 클라이언트 팩토리
-- LangGraph 기반 `Input Router → Loader → Researcher → Strategist → Worker → Finalizer` 흐름
-- 텍스트 입력 기반 TC 생성 체인
-- 이미지 입력 기반 TC 생성 체인
-- PDF 입력 기반 TC 생성 체인
-- CSV 저장
+- 환경 변수 및 OpenRouter/LangSmith 연동
+- Pydantic 스키마 및 LLM 클라이언트 팩토리
+- LangGraph 기반 워크플로우 (`Input Router → Loader → Researcher → Strategist → HITL → Worker → Finalizer`)
+- 텍스트/이미지/PDF 다양한 입력 소스 처리
+- **HITL (Human-in-the-Loop)**: 테스트 전략 생성 직후 사용자 개입(승인/수정/거부) 기능
+- **자동 에러 복구**: `OutputFixingParser`를 통한 LLM 파싱 오류 자동 재시도 및 수정
+- 출력 전용 CSV 저장 및 사전 경로 검증
 
 ## 빠른 시작
 
@@ -56,6 +53,18 @@ PDF에서 테스트 케이스 CSV를 생성하려면:
   --pdf tests/fixtures/simple_spec.pdf \
   --output outputs/sample_tcs_pdf.csv
 ```
+
+## HITL (Human-in-the-Loop) 흐름
+
+`generate` 명령어를 실행하면, LLM이 문서를 분석한 뒤 **Strategist**가 테스트 전략(예상 TC 수, 커버리지 방향 등)을 먼저 화면에 출력하고 대기합니다.
+
+```
+검토 결과를 입력해주세요 - 승인(a) / 수정(e) / 거부(r) [a]:
+```
+
+- **a (승인)**: 해당 전략을 바탕으로 테스트 케이스를 생성합니다.
+- **e (수정)**: 예) "간편결제 케이스를 더 추가해 줘" 처럼 피드백을 주면, 이를 반영해 전략을 재수립합니다.
+- **r (거부)**: 해당 전략을 폐기하고, 다시 분석하여 새로운 전략을 제시합니다.
 
 ## 구조
 

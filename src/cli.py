@@ -121,11 +121,27 @@ def generate(
         input_type = "text"
         raw_input = text
     elif image:
+        for img_path in image:
+            if not img_path.is_file():
+                typer.secho(f"오류: 이미지 파일을 찾을 수 없습니다 ({img_path})", fg="red")
+                raise typer.Exit(code=1)
+            if img_path.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+                typer.secho(f"오류: 지원하지 않는 이미지 확장자입니다 ({img_path})", fg="red")
+                raise typer.Exit(code=1)
         input_type = "image"
         raw_input = "\n".join(str(path) for path in image)
-    else:
+    elif pdf:
+        if not pdf.is_file():
+            typer.secho(f"오류: PDF 파일을 찾을 수 없습니다 ({pdf})", fg="red")
+            raise typer.Exit(code=1)
+        if pdf.suffix.lower() != ".pdf":
+            typer.secho(f"오류: 지원하지 않는 파일 형식입니다. PDF만 가능합니다 ({pdf})", fg="red")
+            raise typer.Exit(code=1)
         input_type = "pdf"
         raw_input = str(pdf)
+    else:
+        typer.secho("알 수 없는 입력입니다.", fg="red")
+        raise typer.Exit(code=1)
 
     initial_state = {
         "input_type": input_type,
@@ -150,8 +166,11 @@ def generate(
         result = graph.get_state(config).values
         test_cases = result.get("final_test_cases") or []
     except (FileNotFoundError, ValueError) as exc:
-        typer.secho(str(exc), fg="red")
-        raise typer.Exit(code=1) from exc
+        typer.secho(f"오류가 발생했습니다: {exc}", fg="red")
+        raise typer.Exit(code=1)
+    except Exception as exc:
+        typer.secho(f"예기치 않은 오류가 발생했습니다: {exc}", fg="red")
+        raise typer.Exit(code=1)
 
     output_path = write_test_cases_to_csv(test_cases, str(output) if output else None)
 

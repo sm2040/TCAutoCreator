@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import List
 
+from langchain.output_parsers import OutputFixingParser
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -15,7 +16,8 @@ from src.prompts.worker import WORKER_MULTIMODAL_INSTRUCTIONS, WORKER_SYSTEM, wo
 def _build_parser() -> PydanticOutputParser[TestCaseBatch]:
     """테스트 케이스 배치 파서를 생성한다."""
 
-    return PydanticOutputParser(pydantic_object=TestCaseBatch)
+    base_parser = PydanticOutputParser(pydantic_object=TestCaseBatch)
+    return OutputFixingParser.from_llm(parser=base_parser, llm=get_text_llm())
 
 
 def generate_test_cases_from_text(input_content: str) -> List[TestCase]:
